@@ -1,0 +1,22 @@
+#
+#
+#	urt0.ums
+# 	Where we initialize stack, register 0
+# 	Julie Yeung jyeung03 Max Peicher mpeich01
+#
+#
+
+.section init 		# sets aside r6 and r7
+	.temps r6, r7
+	.zero r0
+.section stk
+	.space 100000 
+	endcallstack:
+	.space 100000
+	endvaluestack:
+.section init
+	start:
+		r0 := 0
+		r2 := endcallstack
+		r4 := endvaluestack
+		

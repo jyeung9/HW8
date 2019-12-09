@@ -1,0 +1,46 @@
+#
+#	printd.ums
+#	Prints out UM words in decimal format
+#	register r3: stores 
+#
+
+#
+#	register r7 checks input for EOF, pushes onto appropriate stack if not
+#	register r4 is a stack with input digits, in reversed order that we want
+#	register r2 is call stack, receives digits from r6, then outputs 
+#
+
+init: 
+#  initialize stack pointers to have EOF at bottom
+   push -1 on stack r2
+   push -1 on stack r4
+   goto loading_s1
+
+loading_s1: 
+   r7 := input() 
+   if(r7 == -1) {
+	goto loading_s2	
+   }else{
+	push r7 on stack r4	  # loading top val of stack r4 into r7
+	goto loading_s1
+   }
+
+loading_s2:
+   if(r7 == -1){
+	goto print_s2
+   } else {
+	pop r7 off stack r4
+	push r7 on stack r2
+	goto loading_s2
+   }
+  
+print_s2:
+  if(r7 != -1){
+      pop r7 onto stack r2       # stores top stack val from r2
+      output r7
+  }
+  halt				
+
+
+ 
+

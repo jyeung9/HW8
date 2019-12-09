@@ -1,0 +1,12 @@
+
+
+
+.section init
+	 .zero r0
+	 .temps r6,r7
+
+.section text
+    main:
+        r1 := input()
+        output r1
+        halt

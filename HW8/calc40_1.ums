@@ -1,0 +1,126 @@
+#
+#	Julie Yeung (jyeung03) & Max Peicher (mpeich01)
+#	calc40.ums
+#
+# check before getting into entering/waiting state, -48 from ascii dec val --> val
+.section init
+	 .temps r6, r7
+	 .zero r0 
+     r0 := 0
+	 r3 := r0
+			
+	init_jumptable:
+		# r3 is our incrementer "i"
+		if(r3 == 256) goto init_coms using r5	# if all 256 characters are initialized to input error, start initializing the commands
+			r5 := r3 + jumptable
+            m[r0][r5] := input_error
+			r3 := r3 + 1
+			goto init_jumptable
+    init_coms:
+        r3 := '0'
+        m[r0][jumptable + ' '] := space
+        m[r0][jumptable + '\n']:= newline
+       
+    init_digit_in_jt:          # initializes positions '0' to '9' in jumptable
+        if(r3 == ':') goto waiting using r5
+            r5 := jumptable + r3
+            m[r0][r5] := push_num
+            r3 := r3 + 1
+            goto init_digit_in_jt
+
+.section rodata
+	 jumptable:
+	 	.space 256	
+	 # allocating space jtable name comes first
+
+.section text
+    main:
+        output " M A I N " 
+        goto waiting
+
+	input_error:
+		output "Unknown character '"	# IF INCORRECT OUTPUT, CHECK R7
+		output r1
+		output "'"
+		#goto waiting (??)
+
+    waiting: 
+        output " // inside waiting // "
+        r1 := input()
+        if (r1 <s '0')   goto waiting_with_character using r5      # not a digit -> waiting
+        if (r1 >s '9')   goto waiting_with_character using r5
+
+        r1 := r1 - '0'              # save digit as decimal value
+        push r1 on stack r2         # save digit to call stack
+        goto entering
+    
+    waiting_with_character:
+        output " // inside waiting w char // "
+        #if (r1 == 45)           # checks for '-' (negative #)
+    
+        # passed previous condition, we know we are dealing with pos digit
+
+        if (r1 == -1) goto end_program using r5     # EOF via ctrl + d
+
+        output r1
+        r5 := jumptable + r1
+        r5 := m[r0][r5]
+	    goto r5
+    
+        #goto push_num
+
+    #goto_index:                 # access jumptable w value just received
+    #    output "// GOTO_INDEX //"
+    #    output r1
+    #    r5 := jumptable + r1
+    #    r5 := m[r0][r5]
+    #    output " LINE 101 "
+	#    goto r5
+
+    entering: 
+
+        output "// ENT STATE //"
+        r1 := input()   # gets next char
+        if (r1 <s '0')   goto push_one_num using r5      # need to push number to value stack before taking care of non-digit
+        if (r1 >s '9')   goto push_one_num using r5
+        
+        r1 := r1 - '0'
+        pop r7 off stack r2         # retrieve digit on call stack, *10
+        r7 := r7 * 10
+        r7 := r7 + r1
+        push r7 on stack r2
+        goto entering
+
+       # r1 := input()
+
+
+        goto push_num
+    
+    push_one_num:
+        output "push1num \n"
+        pop r7 off stack r2
+        push r7 on stack r4
+        goto waiting_with_character
+
+
+    push_num:                    # pushes digit 0-9 onto value stack
+         output "// PUSHING NUM //"
+         # while not end of input (newline)
+         r7 := r1 - '0' using r5
+         push r7 on stack r4      # push digit onto value stack
+         goto entering            # go to entering state
+    space:
+         output "// IN SPACE //"
+         goto waiting
+    newline:
+         output "// IN NEWLINE //"
+         pop r7 off stack r4
+         push r7 on stack r2
+         goto print_d
+    end_program:
+        output "// ENDING PROGRAM //"
+        halt
+
+	  
+
+
