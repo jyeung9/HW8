@@ -40,7 +40,7 @@
     # initializes jumptable for 'n' command
     init_digit_in_jt:      
 
-        if(r3 == '9') goto g_main using r5
+        if(r3 == '9') goto waiting using r5
             r5 := jumptable + r3
             m[r0][r5] := push_num
             r3 := r3 + 1

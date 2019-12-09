@@ -15,27 +15,48 @@
 .section text
  
 # initialize stack pointers to have EOF at bottom
+#   print_d:
+#       r1 := input()
+#       if(r1 <s 0) goto print_neg using r5
+#       goto print_pos
+#   print_pos:
+#       output "_PRINT_POS_"
+#       output ">>> "
+#       output r5
+#       goto end_prog
+#   print_neg:
+#       output '-'
+#       r1 := r1 * -1
+#       goto print_pos
+#    end_prog:
+#        halt
+
+# Actual PRINT STUFF
+
    print_d:
-        pop r3 off stack r2   # pops the top element of call stack
-        goto print_pos
-        #if (r5 <s 0) goto print_neg using r6
-   print_pos:
-        r5 := r3 / 10
-        if (r5 == r0) goto print_last_digit using r5
-        r5 := r3 mod 10   # stores remainder
-        r5 := r5 + '0'           # add 48 before outputting to get ascii char
-        output r5
-        r3 := r3 / 10
-        goto print_pos
-   print_neg:
-       # output "print_neg"
+         pop r3 off stack r2   # pops the top element of call stack
+         goto print_pos
+         #if (r5 <s 0) goto print_neg using r6
+    print_pos:
+        # push everything to other stack, get correct order
+         r5 := r3 / 10
+         if (r5 == r0) goto print_each_digit using r5
+         r5 := r3 mod 10   # stores remainder
+         r5 := r5 + '0'           # add 48 before outputting to get ascii char
+         output r5
+         r3 := r3 / 10
+         goto print_pos
+    print_neg:
+        output "print_neg"
         output '-'
         r3 := r3 * -1
         goto print_pos
-    print_last_digit:
-        r3 := r3 + '0'           # to print out as an ascii, add 48
-        output r3
-        goto waiting
+    print_each_digit:
+         r3 := r3 + '0'           # to print out as an ascii, add 48
+         output r3
+         goto waiting
+
+        
 
 
 	   	

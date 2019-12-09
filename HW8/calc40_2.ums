@@ -1,0 +1,155 @@
+#
+#	Julie Yeung (jyeung03) & Max Peicher (mpeich01)
+#	calc40.ums
+#
+# check before getting into entering/waiting state, -48 from ascii dec val --> val
+.section init
+	 .temps r6, r7
+	 .zero r0 
+     r0 := 0
+	 r3 := r0
+			
+	init_jumptable:
+		# r3 is our incrementer "i"
+        # if all 256 characters initialized to input error, overwrite with
+        # special characters
+        output " initializing JT "
+		if(r3 == 256) goto init_coms using r5	
+			r5 := r3 + jumptable
+            m[r0][r5] := input_error
+			r3 := r3 + 1
+			goto init_jumptable
+
+    init_coms:          # overwrites the jumptable with special characters
+        r3 := '0'
+        m[r0][jumptable + ' '] := space
+        m[r0][jumptable + '\n']:= newline
+        m[r0][jumptable + '+'] := add
+        m[r0][jumptable + '-'] := sub
+      #  m[r0][jumptable + '*'] := mul
+      #  m[r0][jumptable + '/'] := div
+      #  m[r0][jumptable + '|'] := bit_or
+      #  m[r0][jumptable + '&'] := bit_and
+      #  m[r0][jumptable + 'c'] := change_sign
+      #  m[r0][jumptable + '~'] := bit_comp
+      #  m[r0][jumptable + 's'] := swap
+      #  m[r0][jumptable + 'd'] := dup
+      #  m[r0][jumptable + 'p'] := pop_top
+      #  m[r0][jumptable + 'z'] := zero
+
+    # initializes jumptable for 'n' command
+    init_digit_in_jt:       
+        if(r3 == ':') goto waiting using r5
+            r5 := jumptable + r3
+            m[r0][r5] := push_num
+            r3 := r3 + 1
+            goto init_digit_in_jt
+
+.section rodata
+	 jumptable:     # allocate space for each of 256 chars
+	 	.space 256	
+
+.section text
+    main:
+        output " M A I N " 
+        goto waiting
+
+	input_error:
+		output "Unknown character '"	# IF INCORRECT OUTPUT, CHECK R7
+		output r1
+		output "'"
+		#goto waiting (??)
+
+    waiting: 
+        output " // inside waiting // "
+        output '\n'
+        r1 := input()
+        if (r1 <s '0')   goto waiting_with_character using r5      # not a digit -> waiting
+        if (r1 >s '9')   goto waiting_with_character using r5
+
+        r1 := r1 - '0'              # save digit as decimal value
+        push r1 on stack r2         # save digit to value stack
+        output " pushed to call stack  "
+        output r1 + '0'
+        output '\n'
+        goto entering
+    
+    waiting_with_character:
+        output " // inside waiting w char // "
+        output '\n'
+        #if (r1 == 45)           # checks for '-' (negative #)
+    
+        # passed previous condition, we know we are dealing with pos digit
+
+        if (r1 == -1) goto end_program using r5     # EOF via ctrl + d
+
+        goto jumptable_vals using r5
+        output r1
+
+    entering: 
+
+        output "// ENTERING STATE //"
+        r1 := input()   # gets next char
+
+        if (r1 <s '0')   goto jumptable_vals using r5   
+        if (r1 >s '9')   goto jumptable_vals using r5
+        
+        pop r5 off stack r2
+        r5 := r5 * 10
+        r1 := r1 - '0'
+        r5 := r5 + r1
+        #r5 := r5 - '0'
+        push r5 on stack r2
+        output " pushed multidigit back onto stack "
+        output r5 + '0'
+        goto entering
+       # goto push_num
+
+    jumptable_vals:
+        r5 := jumptable + r1
+        r5 := m[r0][r5]
+	    goto r5
+
+    push_num:
+        push r1 on stack r2
+        goto waiting
+    
+    space:
+        output " S P A C E "
+        goto waiting
+
+    newline: 
+        output "newline, print staccs "
+        goto print_d
+
+    add:
+        output " A D D "
+        pop r3 off stack r2
+        output r3 + '0'
+        output " "
+        pop r5 off stack r2
+        output r5 + '0'
+        r1 := r3 + r5
+        output "////"
+        push r1 on stack r2     # store computed value back on stack
+        output r1 + '0'
+        output " stored back on stack! "        
+        goto waiting
+
+    sub: 
+        output " S U B "
+        pop r3 off stack r2
+        pop r5 off stack r2
+        r1 := r5 - r3
+        push r1 on stack r2
+        output r1 + '0'
+        output " stored back on stack! "    
+        goto waiting
+    
+    end_program:
+        output " ENDING THIS SHIT "
+        halt
+
+ 
+
+
