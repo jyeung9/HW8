@@ -123,8 +123,14 @@
         
 	check_two_args:
         output " IN CHECK TWO ARGS "
-        if (r4 == endvaluestack) goto err_2_args
-        pop r5 off stack r4
+        if (r4 == endvaluestack) goto err_2_args using r5
+        r5 := r4 + 1
+         r3 := m[r0][r5]
+        if (r5 == endvaluestack) goto err_2_args using r5
+
+    err_2_args:
+        output "Stack underflow---expected at least 2 elements\n"
+        goto waiting
 
     push_num:                    # pushes digit 0-9 onto value stack
          output "// PUSHING NUM //"
@@ -206,7 +212,7 @@
 
 
 #1 2+
-#1 +
+#1 +c
 
 #push 1 onto call stack
 

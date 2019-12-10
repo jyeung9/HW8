@@ -24,6 +24,8 @@
 		pop r3 off stack r2		# gets value at top of callstack, store into r3
 		push r1 on stack r2		# save return address	 
 
+		#r3 = r3 - '0'
+		#if (r3 == r0) goto print_zero using r5
 		if(r3 <s r0) goto print_neg using r5	# check if negative num
 		goto print_pos linking r1  				# goes to print_pos
 		output '\n'
@@ -53,11 +55,15 @@
 		goto print_pos
 
     print_neg:
-		output " INSIDE PRINT_NEG "
+		#output " INSIDE PRINT_NEG "
         output '-'
 
         r3 := r3 * -1
         goto print_pos
+
+	#print_zero:			# deals with the leading zero case
+	#	output r3
+	#	goto waiting
 
     add_last_num:
 #		output " inside add last num "
