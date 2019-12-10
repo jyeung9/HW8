@@ -7,6 +7,8 @@
 	main:
 		push 7 on stack r2
 		push 123 on stack r2
+		push 1232356412 on stack r2
+		push -5 on stack r2
 		goto print_d linking r1
 		output "back here! \n"
 		halt

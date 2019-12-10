@@ -16,7 +16,7 @@
 .section text
  
    print_d:
-#	output " INSIDE PRINT_D " 
+	 
 	output "\n >>> "
 	 
 	pop r3 off stack r2
@@ -28,21 +28,23 @@
 	goto r3 
 
     print_pos:
-#	output " INSIDE PRINT_POS "
+
 # push everything to other stack, get correct order
          
 	 r5 := r3 / 10
-	 if (r5 == r0) goto add_last_num using r5
+	   if (r5 == r0) goto add_last_num using r5
          
+       
 	 r5 := r3 mod 10   # stores remainder
+	 
 	 r5 := r5 + '0'
-	    
+	 
+	   
 	 push r5 on stack r2
          r3 := r3 / 10
          goto print_pos
 
     print_neg:
-	output " INSIDE PRINT_NEG "
         output '-'
         r3 := r3 * -1
         goto print_pos
