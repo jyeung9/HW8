@@ -17,15 +17,16 @@
  
    print_d:
 		#output " INSIDE PRINT_D " 
-		output "\n >>> "
 		if (r2 == endcallstack) goto waiting using r5
+		
+		output ">>> "
+		
 		pop r3 off stack r2		# gets value at top of callstack, store into r3
-	
 		push r1 on stack r2		# save return address	 
 
 		if(r3 <s r0) goto print_neg using r5	# check if negative num
 		goto print_pos linking r1  				# goes to print_pos
-		
+		output '\n'
 		# goto waiting
 		goto r3 
 
@@ -39,10 +40,9 @@
 		r5 := r5 + '0'
 			
 		push r5 on stack r2
-		output " -- " 
-		r5 := r5 - '0'
-		output r5
-		output '\n'
+		# r5 := r5 - '0'
+	#	output r5
+	#	output '\n'
 		
 		r3 := r3 / 10
 
@@ -53,11 +53,10 @@
 		goto print_pos
 
     print_neg:
-	output " INSIDE PRINT_NEG "
+		output " INSIDE PRINT_NEG "
         output '-'
-		r3 := ~r3
-		r3 := r3 + 1
-        #r3 := r3 * -1
+
+        r3 := r3 * -1
         goto print_pos
 
     add_last_num:
@@ -68,10 +67,11 @@
 
     print_nums:	
 #		output " inside print_nums "
-	#	if (r2 == endcallstack) goto print_d using r5
+
 		pop r3 off stack r2
-		if (r3 <s '0') goto print_d using r5
-		if (r3 >s '9') goto print_d using r5
+
+		if (r3 <s '0') goto r1 using r5
+		if (r3 >s '9') goto r1 using r5
 	
         output r3
         goto print_nums

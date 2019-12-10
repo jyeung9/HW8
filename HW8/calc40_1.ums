@@ -18,6 +18,13 @@
             m[r0][r5] := input_error
 			r3 := r3 + 1
 			goto init_jumptable
+    jumptable:
+	 	.space 256	
+	 # allocating space jtable name comes first
+
+.section rodata
+
+
 
     init_coms:          # overwrites the jumptable with special characters
         r3 := '0'
@@ -45,11 +52,6 @@
             r3 := r3 + 1
             goto init_digit_in_jt
 
-.section rodata
-	 jumptable:
-	 	.space 256	
-	 # allocating space jtable name comes first
-
 .section text
     main:
         output " M A I N " 
@@ -62,16 +64,13 @@
 		#goto waiting (??)
 
     waiting: 
-        output "  wAiTiNG stATE "
-        output '\n'
+       output "  wAiTiNG stATE "
+       #output '\n'
         r1 := input()
+        output r1 + '0'
         if (r1 <s '0')   goto waiting_with_character using r5      # not a digit -> waiting
         if (r1 >s '9')   goto waiting_with_character using r5
-	
-	#output "r1"
-	#output r1
-	#output "r1 + 0"
-	#output r1 + '0'
+
         r1 := r1 - '0'              # save digit as decimal value
         push r1 on stack r4         # save digit to call stack
         #output " pushed to stack r4, value = "
@@ -86,30 +85,39 @@
         # passed previous condition, we know we are dealing with pos digit
 
         if (r1 == -1) goto end_program using r5     # EOF via ctrl + d
-	r3 := '-'
-	if(r1 == r3) goto check_neg using r5	    # takes care of negative #'s
-	goto goto_index
+	   # r3 := '-'
+	   # if(r1 == r3) goto check_neg using r5	    # takes care of negative #'s
+	    goto goto_index
 
     goto_index:
         output "goto index \n"
-	r5 := jumptable + r1
+	    r5 := jumptable + r1
         r5 := m[r0][r5]
         goto r5
 
-    check_neg:
-	output "check_neg \n"
-	r3 := input()
+    check_neg:                               # checks whether character
+                                             # following negative sign is 
+                                             # digit or operand
+        output "check_neg \n"
+        r1 := input()
+        output "after check \n"
         # push r1 on stack r2
-        if (r3 <s '0')   goto goto_index using r5   # not a digit -> waiting
-        if (r3 >s '9')   goto goto_index using r5
         
-	r3 := r3 * -1
+                                                # distinguish between sub/neg #'s
+       # if (r1 <s '0')   goto correct_s using r5   # not a digit, we know it's subtraction
+       # if (r1 >s '9')   goto correct_s using r5
+            
+        r3 := r1 * -1
 
-	push r3 on stack r2		# push negative number onto callstack
-	goto print_d linking r5		# take care of printing 
-	output "end of check_neg \n"
-	pop r3 off stack r2		# restore this nonvolatile register
-	
+        push r3 on stack r2		# push negative number onto callstack
+        goto print_d linking r5		# take care of printing 
+        output "end of check_neg \n"
+        pop r3 off stack r2		# restore this nonvolatile register
+        
+    #correct_s:
+    #    push r1 on stack r2
+    #    goto sub
+
     entering: 
 
         output " ENTERING "
@@ -136,8 +144,6 @@
     #    that should execute the operation
     #    go back to waiting
         
-        
-    interim:
 	
     push_num:                    # pushes digit 0-9 onto value stack
          output "// PUSHING NUM //"
@@ -152,42 +158,46 @@
     newline:
          output "// IN NEWLINE //"
          output '\n'
-         pop r7 off stack r4            # pops value off top of value stack
-         push r7 on stack r2            # and into call stack for printing
-         push r7 on stack r4
+         r3 := r4          # sets r3 as our stack pointer for recursive print
+         goto print_rec using r5
+        
+        # pop r7 off stack r4            # pops value off top of value stack
+         #push r7 on stack r2            # and into call stack for printing m[0][r3]
+        # push r7 on stack r4            
 	# output " BEFORE PRINT_D "
-	 goto print_d
+    #recursively go to print d while valstack != empty
+	    goto print_d
+
+    print_rec:
+        output " in print_rec " 
+         if (r3 == endvaluestack) goto print_d using r5
+            r7 := m[r0][r3]
+            r3 := r3 + 1
+            #pop r7 off stack r4
+            push r7 on stack r2
+            goto print_rec
+
     add:
         output " INSIDE ADD "
         pop r3 off stack r4             # pop two values off stack r4
-        #output " popped first off r4 "
-        #output '\n'
         pop r5 off stack r4
-        #output " popped second off r4 "
-        #output '\n'
-        r1 := r3 + r5
-
-#	push r1 on stack r2
-#	goto print_d
-	#r1 := r1 - '0'        
+        r1 := r3 + r5           # store sum into register r1      
         push r1 on stack r4             # store result back onto value stack 
                                         # to ensure that there are at least 2 
                                         # arguments for add operand between 
                                         # computations
-     
+        goto waiting
        # output " pushed back onto stack r4, value = "
        # output r1 + '0'
-    #   output '\n'
-        goto waiting
-
+       # output '\n'
+        
     sub:
-    # 3 1 -
         output " INSIDE SUB "
         pop r3 off stack r4
         pop r5 off stack r4
         r1 := r5 - r3
+        #if(r1 <s r0) goto waiting_with_character linking r1
         push r1 on stack r4
-        output r1 + '0'
         goto waiting
 
     end_program:
