@@ -10,7 +10,6 @@
 	 r3 := r0
 			
 	init_jumptable:
-		# r3 is our incrementer "i"
         # if all 256 characters initialized to input error, overwrite with
         # special characters
 	if(r3 == 256) goto init_coms using r5	
@@ -23,9 +22,6 @@
 	 # allocating space jtable name comes first
 
 .section rodata
-
-
-
     init_coms:          # overwrites the jumptable with special characters
         r3 := '0'
         m[r0][jumptable + ' '] := space
@@ -43,11 +39,11 @@
         m[r0][jumptable + 'p'] := pop_top
         m[r0][jumptable + 'z'] := zero
 
-    # initializes jumptable for 'n' command
+    # initializes jumptable for digits  command
     init_digit_in_jt:      
 
         if(r3 == '9') goto g_main using r5
-            r5 := jumptable + r3
+	    r5 := jumptable + r3
             m[r0][r5] := push_num
             r3 := r3 + 1
             goto init_digit_in_jt
@@ -58,56 +54,46 @@
         goto waiting
 
     input_error:
-	output "Unknown character '"	# IF INCORRECT OUTPUT, CHECK R7
-	output r1
-	output "'"
-		#goto waiting (??)
-
+        output "Unknown character '"	
+        output r1
+        output "'\n"
+	
     waiting: 
-       #output "  wAiTiNG stATE "
-       #output '\n'
         r1 := input()
-        #output r1 + '0'
-        if (r1 <s '0')   goto waiting_with_character using r5      # not a digit -> waiting
+       
+        # check if input is digit
+        if (r1 <s '0')   goto waiting_with_character using r5       	  	      			      
         if (r1 >s '9')   goto waiting_with_character using r5
 
-        r1 := r1 - '0'              # save digit as decimal value
-        push r1 on stack r4         # save digit to call stack
-        #output " pushed to stack r4, value = "
-        #output r1 + '0'
-        #output '\n'
+        # input is a digit, push onto value stack
+        r1 := r1 - '0'          # save ascii input as decimal values
+        push r1 on stack r4        
         goto entering
     
     waiting_with_character:
-        #output " // inside waiting w char // \n"
     
         # passed previous condition, we know we are dealing with pos digit
-
-        if (r1 == -1) goto end_program using r5     # EOF via ctrl + d
-	   # r3 := '-'
-	   # if(r1 == r3) goto check_neg using r5	    # takes care of negative #'s
+        if (r1 == -1) goto end_program using r5     # EOF case	
 	    goto goto_index
 
-    goto_index:
+    goto_index:         # go to location in jtable
         #output "goto index \n"
 	    r5 := jumptable + r1
         r5 := m[r0][r5]
         goto r5
 
-    entering: 
+    entering:                # there's at least 1 digit in value stack already
 
 #        output "entering\n"
     
         r1 := input()   # gets next char
         
-	# if char is not a digit, will pop/push these digits
+	    # if char is not a digit, will pop/push these digits
         # to another stack, multiplying by 10/adding
         # then, we will jump control flow to the operation we read in
        
-        if (r1 <s '0')   goto  waiting_with_character using r5
-	      # need to push number to value stack before taking care of non-digit
-        
-        if (r1 >s '9')   goto  waiting_with_character using r5
+        if (r1 <s '0')   goto waiting_with_character using r5    
+        if (r1 >s '9')   goto waiting_with_character using r5
         
         r1 := r1 - '0'
         pop r7 off stack r4
@@ -203,8 +189,57 @@
     
     div:
        # output " INSIDE DIV "
-       pop r3 off stack r4
-       pop r5 off stack r4
+       goto check_two_args linking r1
+       
+       pop r3 off  stack r4		#pop y off stack
+       if (r3 == r0) goto div_zero using r5 	#division by zero case
+       if (r3 <s r0) goto div_y_neg using r5	#if one num is negative case
+       
+       pop r1 off stack r4
+       if (r1 <s r0) goto div_x_neg using r5	#division if one num is negative
+
+       # if we made it to this point, we are no longer dividing by negative
+       # values, so we then perform regular division
+       
+       r1 := r1 / r3
+       push r1 on stack r4 #push result onto val stack
+       goto waiting
+  
+    div_zero:
+	push r3 on stack r4
+	output "Division by zero \n"
+	goto waiting
+
+    div_y_neg: #div where first num is neg 
+	
+	pop r1 off stack r4 # get x off stack
+	if (r1 <s r0)	goto div_both_neg using r5 #check if both nums are neg	
+
+	r3 := r3 * -1 # div by positive and then mult by -1
+
+	r1 := r1 / r3
+	r1 := r1 * -1
+	push r1 on stack r4 #push result onto val stack
+	goto waiting
+
+    div_x_neg: #div where second num is neg
+    	       #if we made it to this case, we know that the first val we checked was
+	       #positive, so the resulting quotient must be negative
+
+	r1 := r1 * -1 #make pos for divison
+	r1 := r1/ r3 
+	r1 := r1 * -1
+	push r1 on stack r4 #push result onto val stack
+	goto waiting
+	
+    	
+
+    div_both_neg:
+	r1 := r1 * -1  #turn r1 to pos val
+	r3 := r3 * -1  #turn r2 to pos val
+	r1 := r1 / r3
+	push r1 on stack r4 # push result onto val stack
+	goto waiting
 
     end_program:
        # output "// ENDING PROGRAM //"
