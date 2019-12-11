@@ -1,0 +1,328 @@
+#
+#	Julie Yeung (jyeung03) & Max Peicher (mpeich01)
+#	calc40.ums
+#
+# check before getting into entering/waiting state, -48 from ascii dec val --> val
+.section init
+	 .temps r6, r7
+	 .zero r0 
+         r0 := 0
+	 r3 := r0
+			
+	init_jumptable:
+        # if all 256 characters initialized to input error, overwrite with
+        # special characters
+	if(r3 == 256) goto init_coms using r5	
+			r5 := r3 + jumptable
+            m[r0][r5] := input_error
+			r3 := r3 + 1
+			goto init_jumptable
+    jumptable:
+	 	.space 256	
+	 # allocating space jtable name comes first
+
+.section rodata
+    init_coms:          # overwrites the jumptable with special characters
+        r3 := '0'
+        m[r0][jumptable + ' '] := space
+        m[r0][jumptable + '\n']:= newline
+        m[r0][jumptable + '+'] := add
+        m[r0][jumptable + '-'] := sub
+        m[r0][jumptable + '*'] := mul
+        m[r0][jumptable + '/'] := div
+        m[r0][jumptable + '|'] := bor   # bitwise or operation
+        m[r0][jumptable + '&'] := band # bitwise and operation
+        m[r0][jumptable + 'c'] := change_sign
+        m[r0][jumptable + '~'] := bit_comp
+        m[r0][jumptable + 's'] := swap
+        m[r0][jumptable + 'd'] := dup
+        m[r0][jumptable + 'p'] := pop_top
+        m[r0][jumptable + 'z'] := zero
+
+    # initializes jumptable for digits  command
+    init_digit_in_jt:      
+
+        if(r3 == '9') goto g_main using r5
+	    r5 := jumptable + r3
+            m[r0][r5] := push_num
+            r3 := r3 + 1
+            goto init_digit_in_jt
+
+.section text
+    main:
+       # output " M A I N " 
+        goto waiting
+
+    input_error:
+        output "Unknown character '"	
+        output r1
+        output "'\n"
+	
+    waiting: 
+        r1 := input()
+       
+        # check if input is digit
+        if (r1 <s '0')   goto waiting_with_character using r5       	  	      			      
+        if (r1 >s '9')   goto waiting_with_character using r5
+
+        # input is a digit, push onto value stack
+        r1 := r1 - '0'          # save ascii input as decimal values
+        push r1 on stack r4        
+        goto entering
+    
+    waiting_with_character:
+    
+        # passed previous condition, we know we are dealing with pos digit
+        if (r1 == -1) goto end_program using r5     # EOF case	
+	    goto goto_index
+
+    goto_index:         # go to location in jtable
+        #output "goto index \n"
+	    r5 := jumptable + r1
+        r5 := m[r0][r5]
+        goto r5
+
+    entering:                # there's at least 1 digit in value stack already
+
+#        output "entering\n"
+    
+        r1 := input()   # gets next char
+        
+	    # if char is not a digit, will pop/push these digits
+        # to another stack, multiplying by 10/adding
+        # then, we will jump control flow to the operation we read in
+       
+        if (r1 <s '0')   goto waiting_with_character using r5    
+        if (r1 >s '9')   goto waiting_with_character using r5
+        
+        r1 := r1 - '0'
+        pop r7 off stack r4
+        r7 := r7 * 10
+        r7 := r7 + r1
+        push r7 on stack r4       # store digit onto value stack
+        goto entering
+
+    #    push that to where ever values should be stored (value stack?)
+    #    jump to location of non-digit character
+    #    that should execute the operation
+    #    go back to waiting
+        
+    check_one_arg:
+        if (r4 == endvaluestack) goto err_1_arg using r5
+        goto r1
+
+    err_1_arg:
+        output "Stack underflow---expected at least 1 element\n"
+        goto waiting
+
+    check_two_args:                 # error checking for binary operators
+
+            if (r4 == endvaluestack) goto err_2_args using r5
+	        pop r5 off stack r4         
+            r3 := r4            
+	        push r5 on stack r4
+            if (r3 == endvaluestack) goto err_2_args using r5
+	        goto r1
+
+    err_2_args:
+        output "Stack underflow---expected at least 2 elements\n"
+        goto waiting
+
+    push_num:                    # pushes digit 0-9 onto value stack
+         output "// PUSHING NUM //"
+         # while not end of input (newline)
+         r7 := r1 - '0' using r5
+         push r7 on stack r4      # push digit onto value stack
+         goto entering            # go to entering state
+    space:
+        # output "--- SPACE --- \n"
+         goto waiting
+    newline:
+     #   output "// IN NEWLINE //\n"
+         r3 := r4          # sets r3 as our stack pointer for recursive print
+         goto print_rec using r5
+        
+        goto print_d
+
+    print_rec:
+       # output " in print_rec " 
+         if (r3 == endvaluestack) goto print_d using r5
+            r5 := m[r0][r3]
+            push r3 on stack r2
+            push r5 on stack r2
+
+            goto print_d linking r1
+            pop r3 off stack r2
+            r3 := r3 + 1
+
+            goto print_rec
+
+    add:
+        goto check_two_args linking r1
+       # output " INSIDE ADD "
+        pop r3 off stack r4             # pop two values off stack r4
+        pop r5 off stack r4
+        r1 := r3 + r5           # store sum into register r1      
+        push r1 on stack r4             # store result back onto value stack 
+                                        # to ensure that there are at least 2 
+                                        # arguments for add operand between 
+                                        # computations
+        goto waiting
+       # output " pushed back onto stack r4, value = "
+       # output r1 + '0'
+       # output '\n'
+        
+    sub:
+        #output " INSIDE SUB \n"
+        goto check_two_args linking r1
+        
+        pop r3 off stack r4
+        pop r5 off stack r4
+        r3 := r5 - r3
+        #if(r3 <s r0) goto waiting_with_character linking r1
+        push r3 on stack r4
+        goto waiting
+
+    mul:
+       #  output " INSIDE MUL "
+        goto check_two_args linking r1
+        pop r3 off stack r4
+        pop r5 off stack r4
+
+        r1 := r5 * r3
+        push r1 on stack r4
+        goto waiting
+    
+    div:
+       # output " INSIDE DIV "
+       goto check_two_args linking r1
+       
+       pop r3 off  stack r4		#pop y off stack
+       if (r3 == r0) goto div_zero using r5 	#division by zero case
+       if (r3 <s r0) goto div_y_neg using r5	#if one num is negative case
+       
+       pop r1 off stack r4
+       if (r1 <s r0) goto div_x_neg using r5	#division if one num is negative
+
+       # if we made it to this point, we are no longer dividing by negative
+       # values, so we then perform regular division
+       
+       r1 := r1 / r3
+       push r1 on stack r4 #push result onto val stack
+       goto waiting
+  
+    div_zero:
+	push r3 on stack r4
+	output "Division by zero\n"
+	goto waiting
+
+    div_y_neg: #div where first num is neg 
+	
+	pop r1 off stack r4 # get x off stack
+	if (r1 <s r0)	goto div_both_neg using r5 #check if both nums are neg	
+
+	r3 := r3 * -1 # div by positive and then mult by -1
+
+	r1 := r1 / r3
+	r1 := r1 * -1
+	push r1 on stack r4 #push result onto val stack
+	goto waiting
+
+    div_x_neg: #div where second num is neg
+    	       #if we made it to this case, we know that the first val we checked was
+	       #positive, so the resulting quotient must be negative
+
+	r1 := r1 * -1 #make pos for divison
+	r1 := r1/ r3 
+	r1 := r1 * -1
+	push r1 on stack r4 #push result onto val stack
+	goto waiting
+	
+    div_both_neg:
+	r1 := r1 * -1  #turn r1 to pos val
+	r3 := r3 * -1  #turn r2 to pos val
+	r1 := r1 / r3
+	push r1 on stack r4 # push result onto val stack
+	goto waiting
+
+    end_program:
+       # output "// ENDING PROGRAM //"
+        halt
+
+    # TEST LATER
+     bor:
+       goto check_two_args linking r1
+       # output " INSIDE BOR "
+        pop r3 off stack r4
+        pop r5 off stack r4
+        r1 := r5 | r3
+        push r1 on stack r4
+        goto waiting
+
+    # TEST LATER 
+    band:
+        goto check_two_args linking r1
+
+        #output " INSIDE BAND "
+        pop r3 off stack r4
+        pop r5 off stack r4
+        r1 := r3 & r5
+        push r1 on stack r4
+        goto waiting
+
+    # ------UNARY OPERATORS 
+
+    change_sign: 
+        goto check_one_arg linking r1
+
+        #output " INSIDE CHANGE_SIGN "
+        pop r3 off stack r4
+
+        r1 := r3 * -1
+        push r1 on stack r4
+        goto waiting
+
+    bit_comp:
+        goto check_one_arg linking r1
+
+        pop r3 off stack r4
+        r5 := ~r3
+        push r5 on stack r4
+        goto waiting
+
+    swap:
+        goto check_two_args linking r1
+
+        pop r3 off stack r4     # first elem
+        pop r5 off stack r4     # second elem
+        push r3 on stack r4     # push first elem
+        push r5 on stack r4     # push second elem
+        goto waiting    
+    dup: 
+        goto check_one_arg linking r1
+     #   output "in dup"
+        pop r3 off stack r4
+        r5 := r3
+        push r3 on stack r4
+        push r5 on stack r4
+        goto waiting
+
+    pop_top: 
+        goto check_one_arg linking r1
+        pop stack r4
+        goto waiting
+    
+    zero: 
+        goto check_one_arg linking r1
+        if(r4 == endvaluestack) goto waiting using r5
+        pop r3 off stack r4
+        goto zero
+
+
+
+    
+    
+
+	  
+
+
