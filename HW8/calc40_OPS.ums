@@ -33,13 +33,13 @@
         m[r0][jumptable + '+'] := add
         m[r0][jumptable + '-'] := sub
         m[r0][jumptable + '*'] := mul
-      # m[r0][jumptable + '/'] := div
+        m[r0][jumptable + '/'] := div
         m[r0][jumptable + '|'] := bor   # bitwise or operation
         m[r0][jumptable + '&'] := band # bitwise and operation
         m[r0][jumptable + 'c'] := change_sign
         m[r0][jumptable + '~'] := bit_comp
         m[r0][jumptable + 's'] := swap
-      # m[r0][jumptable + 'd'] := dup
+        m[r0][jumptable + 'd'] := dup
         m[r0][jumptable + 'p'] := pop_top
         m[r0][jumptable + 'z'] := zero
 
@@ -79,8 +79,7 @@
         goto entering
     
     waiting_with_character:
-        #output " // inside waiting w char // "
-        #output '\n'
+        #output " // inside waiting w char // \n"
     
         # passed previous condition, we know we are dealing with pos digit
 
@@ -97,16 +96,17 @@
 
     entering: 
 
-       # output " ENTERING "
-        #output '\n'
+#        output "entering\n"
+    
         r1 := input()   # gets next char
-	#output " TESTING "
-	#output r1
-        # if char is not a digit, will pop/push these digits
+        
+	# if char is not a digit, will pop/push these digits
         # to another stack, multiplying by 10/adding
         # then, we will jump control flow to the operation we read in
+       
         if (r1 <s '0')   goto  waiting_with_character using r5
 	      # need to push number to value stack before taking care of non-digit
+        
         if (r1 >s '9')   goto  waiting_with_character using r5
         
         r1 := r1 - '0'
@@ -122,11 +122,13 @@
     #    go back to waiting
         
     check_two_args:                 # error checking for binary operators
-            output " IN CHECK TWO ARGS "
+
             if (r4 == endvaluestack) goto err_2_args using r5
-            r5 := r4 + 1
-            r3 := m[r0][r5]
-            if (r5 == endvaluestack) goto err_2_args using r5
+	        pop r5 off stack r4         
+            r3 := r4            
+	        push r5 on stack r4
+            if (r3 == endvaluestack) goto err_2_args using r5
+	        goto r1
 
     err_2_args:
         output "Stack underflow---expected at least 2 elements\n"
@@ -139,21 +141,15 @@
          push r7 on stack r4      # push digit onto value stack
          goto entering            # go to entering state
     space:
-         #output "--- SPACE ---"
-         #output '\n'
+        # output "--- SPACE --- \n"
          goto waiting
     newline:
-      #   output "// IN NEWLINE //"
+      #  output "// IN NEWLINE //\n"
       #   output '\n'
          r3 := r4          # sets r3 as our stack pointer for recursive print
          goto print_rec using r5
         
-        # pop r7 off stack r4            # pops value off top of value stack
-         #push r7 on stack r2            # and into call stack for printing m[0][r3]
-        # push r7 on stack r4            
-	# output " BEFORE PRINT_D "
-    #recursively go to print d while valstack != empty
-	    goto print_d
+        goto print_d
 
     print_rec:
        # output " in print_rec " 
@@ -169,7 +165,8 @@
             goto print_rec
 
     add:
-        #output " INSIDE ADD "
+        goto check_two_args linking r1
+       # output " INSIDE ADD "
         pop r3 off stack r4             # pop two values off stack r4
         pop r5 off stack r4
         r1 := r3 + r5           # store sum into register r1      
@@ -183,32 +180,31 @@
        # output '\n'
         
     sub:
-       # output " INSIDE SUB "
+        #output " INSIDE SUB \n"
+        goto check_two_args linking r1
+        
         pop r3 off stack r4
         pop r5 off stack r4
-        r1 := r5 - r3
-        #if(r1 <s r0) goto waiting_with_character linking r1
-        push r1 on stack r4
+        r3 := r5 - r3
+        #if(r3 <s r0) goto waiting_with_character linking r1
+        push r3 on stack r4
         goto waiting
+
     mul:
-        #output " INSIDE MUL "
+       #  output " INSIDE MUL "
+        goto check_two_args linking r1
         pop r3 off stack r4
+   #     output r3 + '0'
         pop r5 off stack r4
+#       output r5 + '0'
         r1 := r5 * r3
         push r1 on stack r4
         goto waiting
     
-    #div:
+    div:
        # output " INSIDE DIV "
-       # pop r3 off stack r4
-       # pop r5 off stack r4
-       # divide by zero
-       # negative denom
-       # negative numerator
-       # negative both
-       # r1 := r5 * r3
-       # push r1 on stack r4
-       # goto waiting
+       pop r3 off stack r4
+       pop r5 off stack r4
 
     end_program:
        # output "// ENDING PROGRAM //"
@@ -252,7 +248,14 @@
         pop r5 off stack r4     # second elem
         push r3 on stack r4     # push first elem
         push r5 on stack r4     # push second elem
-        
+    
+    dup: 
+        pop r3 off stack r4
+        r5 := r3
+        push r3 on stack r4
+        push r5 on stack r4
+        goto waiting
+
     pop_top: 
         pop stack r4
         goto waiting
